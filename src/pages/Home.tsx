@@ -110,15 +110,15 @@ const Home: React.FC = () => {
       </section>
 
       {/* Featured Products */}
-      <section className="py-24 bg-brand-dark text-white">
+      <section className="py-24 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
             <div className="relative">
-              <div className="absolute -top-10 -left-6 text-white/5 font-black text-8xl pointer-events-none">NOOR</div>
-              <h2 className="text-4xl md:text-5xl font-black text-white mb-4 font-bn relative z-10">জনপ্রিয় পণ্যসমূহ</h2>
-              <div className="w-20 h-1.5 bg-brand-gold"></div>
+              <div className="absolute -top-10 -left-6 text-brand-gold/10 font-black text-8xl pointer-events-none">NOOR</div>
+              <h2 className="text-4xl md:text-5xl font-black text-brand-dark mb-4 font-bn relative z-10">জনপ্রিয় পণ্যসমূহ</h2>
+              <div className="w-20 h-1.5 bg-brand-red"></div>
             </div>
-            <Link to="/shop" className="text-white font-bold font-bn text-xl flex items-center gap-2 hover:translate-x-2 transition-transform">
+            <Link to="/shop" className="text-brand-red font-bold font-bn text-xl flex items-center gap-2 hover:translate-x-2 transition-transform">
               সব পণ্য দেখুন <ArrowRight size={20} />
             </Link>
           </div>
@@ -128,7 +128,7 @@ const Home: React.FC = () => {
               <motion.div
                 key={product.id}
                 whileHover={{ y: -10 }}
-                className="bg-brand-dark/40 backdrop-blur-sm rounded-xl overflow-hidden shadow-sm hover:shadow-2xl transition-all border border-white/10 flex flex-col h-full group"
+                className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-2xl transition-all border border-stone-100 flex flex-col h-full group"
               >
                 <Link to={`/product/${product.id}`} className="block relative aspect-[4/3] overflow-hidden">
                   <img
@@ -143,15 +143,15 @@ const Home: React.FC = () => {
                 </Link>
                 <div className="p-8 flex flex-col flex-1">
                   <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-2xl font-black font-bn tracking-tight text-white">
+                    <h3 className="text-2xl font-black font-bn tracking-tight text-brand-dark group-hover:text-brand-red transition-colors">
                       {product.nameBn}
                     </h3>
-                    <span className="text-white font-black text-2xl">৳{product.price}</span>
+                    <span className="text-brand-red font-black text-2xl">৳{product.price}</span>
                   </div>
-                  <p className="text-white/70 mb-8 font-bn text-lg">{product.weightBn}</p>
+                  <p className="text-stone-500 mb-8 font-bn text-lg">{product.weightBn}</p>
                   <button
                     onClick={() => addToCart(product)}
-                    className="mt-auto w-full bg-brand-red text-white py-4 rounded-lg font-bn text-xl font-bold flex items-center justify-center gap-2 hover:bg-brand-gold hover:text-brand-dark transition-all shadow-md active:scale-95"
+                    className="mt-auto w-full bg-brand-dark text-white py-4 rounded-lg font-bn text-xl font-bold flex items-center justify-center gap-2 hover:bg-brand-red transition-all shadow-md active:scale-95"
                   >
                     ব্যাগ-এ যুক্ত করুন
                   </button>
