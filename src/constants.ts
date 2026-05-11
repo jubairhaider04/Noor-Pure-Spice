@@ -2,6 +2,7 @@ import { Product } from './types';
 import TurmericImg from './assets/images/regenerated_image_1778034966619.jpg';
 import ChiliImg from './assets/images/regenerated_image_1778034968521.jpg';
 import CorianderImg from './assets/images/regenerated_image_1778034970511.jpg';
+import ComboImg from './assets/images/regenerated_image_1778091014698.jpg';
 
 export const PRODUCTS: Product[] = [
   {
@@ -104,7 +105,7 @@ export const PRODUCTS: Product[] = [
     weightBn: '১.২ কেজি',
     description: 'A complete collection of 6 essential pure spices.',
     descriptionBn: 'রান্নার প্রয়োজনীয় ৬টি খাঁটি মসলার একটি চমৎকার কম্বো অফার।',
-    image: '/src/assets/images/regenerated_image_1778091014698.jpg',
+    image: ComboImg,
     category: 'Combo Pack',
     categoryBn: 'কম্ব প্যাক'
   }
