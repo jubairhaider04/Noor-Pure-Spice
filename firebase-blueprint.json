@@ -1,0 +1,95 @@
+{
+  "entities": {
+    "Product": {
+      "title": "Product",
+      "description": "Spice product information",
+      "type": "object",
+      "properties": {
+        "nameBn": { "type": "string" },
+        "nameEn": { "type": "string" },
+        "descriptionBn": { "type": "string" },
+        "descriptionEn": { "type": "string" },
+        "price": { "type": "number" },
+        "weightBn": { "type": "string" },
+        "weightEn": { "type": "string" },
+        "stock": { "type": "integer" },
+        "images": { "type": "array", "items": { "type": "string" } },
+        "category": { "type": "string" },
+        "isFeatured": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["nameBn", "price", "stock", "category"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer order record",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "customerInfo": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string" },
+            "phone": { "type": "string" },
+            "address": { "type": "string" }
+          }
+        },
+        "items": { "type": "array" },
+        "totalAmount": { "type": "number" },
+        "deliveryCharge": { "type": "number" },
+        "couponDiscount": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "shipped", "delivered", "cancelled"] },
+        "paymentMethod": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["customerInfo", "items", "totalAmount", "status"]
+    },
+    "User": {
+      "title": "User",
+      "description": "User profile data",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "role": { "type": "string", "enum": ["admin", "user"] },
+        "address": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "role"]
+    },
+    "Coupon": {
+      "title": "Coupon",
+      "description": "Discount coupon logic",
+      "type": "object",
+      "properties": {
+        "code": { "type": "string" },
+        "type": { "type": "string", "enum": ["percentage", "fixed"] },
+        "value": { "type": "number" },
+        "minOrder": { "type": "number" },
+        "expiryDate": { "type": "string", "format": "date-time" },
+        "isActive": { "type": "boolean" }
+      },
+      "required": ["code", "type", "value", "isActive"]
+    }
+  },
+  "firestore": {
+    "products": {
+      "schema": "Product",
+      "description": "Collection of spice products"
+    },
+    "orders": {
+      "schema": "Order",
+      "description": "Collection of customer orders"
+    },
+    "users": {
+      "schema": "User",
+      "description": "Collection of user profiles"
+    },
+    "coupons": {
+      "schema": "Coupon",
+      "description": "Collection of discount coupons"
+    }
+  }
+}

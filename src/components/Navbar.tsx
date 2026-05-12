@@ -1,14 +1,21 @@
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { ShoppingCart, Phone, MessageCircle, Menu, X } from 'lucide-react';
+import { ShoppingCart, Phone, MessageCircle, Menu, X, User as UserIcon, LogOut, LayoutDashboard } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { BRAND_NAME_BN, PHONE_NUMBER_BN, WHATSAPP_NUMBER } from '../constants';
 import LogoImage from '../assets/images/regenerated_image_1778034406861.jpg';
+import LoginModal from './LoginModal';
+import { signOut } from 'firebase/auth';
+import { auth } from '../services/firebase';
 
 const Navbar: React.FC = () => {
   const { totalItems } = useCart();
+  const { user, isAdmin } = useAuth();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
 
   const navLinks = [
     { name: 'হোম', path: '/' },
@@ -18,6 +25,10 @@ const Navbar: React.FC = () => {
   ];
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+  const handleLogout = () => {
+    signOut(auth);
+    setIsUserMenuOpen(false);
+  };
 
   return (
     <nav className="sticky top-0 z-50 bg-white border-b-2 border-brand-gold shadow-sm">
@@ -87,6 +98,53 @@ const Navbar: React.FC = () => {
               )}
             </Link>
 
+            {/* Account / Login */}
+            <div className="relative">
+              {user ? (
+                <button 
+                  onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+                  className="p-2 sm:p-2.5 bg-stone-100 text-brand-dark rounded-lg transition-transform hover:scale-105 active:scale-95 shadow-sm border border-stone-200 flex items-center gap-2"
+                >
+                  <UserIcon size={22} />
+                </button>
+              ) : (
+                <button 
+                  onClick={() => setIsLoginModalOpen(true)}
+                  className="p-2 sm:p-2.5 bg-brand-dark text-white rounded-lg transition-transform hover:scale-105 active:scale-95 shadow-md flex items-center gap-2"
+                >
+                  <UserIcon size={22} />
+                  <span className="hidden lg:inline text-sm font-bold font-bn">লগইন</span>
+                </button>
+              )}
+
+              {/* User Menu Dropdown */}
+              {isUserMenuOpen && user && (
+                <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-2xl border border-stone-100 py-3 z-[60] animate-in fade-in slide-in-from-top-2 duration-200">
+                  <div className="px-4 py-3 border-b border-stone-50 mb-2">
+                    <p className="text-sm text-stone-400 font-sans">লগইন করা আছে</p>
+                    <p className="font-bold text-brand-dark truncate">{user.displayName || user.email}</p>
+                  </div>
+                  {isAdmin && (
+                    <Link 
+                      to="/admin" 
+                      onClick={() => setIsUserMenuOpen(false)}
+                      className="flex items-center gap-3 px-4 py-3 text-brand-red hover:bg-red-50 transition-colors font-bn font-bold"
+                    >
+                      <LayoutDashboard size={18} />
+                      অ্যাডমিন প্যানেল
+                    </Link>
+                  )}
+                  <button 
+                    onClick={handleLogout}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-stone-600 hover:bg-stone-50 transition-colors font-bn font-bold"
+                  >
+                    <LogOut size={18} />
+                    লগ আউট
+                  </button>
+                </div>
+              )}
+            </div>
+
             {/* Mobile Menu Button */}
             <button 
               onClick={toggleMenu}
@@ -97,6 +155,8 @@ const Navbar: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <LoginModal isOpen={isLoginModalOpen} onClose={() => setIsLoginModalOpen(false)} />
 
       {/* Mobile Menu Tray */}
       {isMenuOpen && (

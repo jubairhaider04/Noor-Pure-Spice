@@ -1,22 +1,124 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { CheckCircle, Truck, CreditCard, ChevronLeft } from 'lucide-react';
+import { CheckCircle, Truck, CreditCard, ChevronLeft, Ticket, XCircle } from 'lucide-react';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { SHIPPING_COST_DHAKA, SHIPPING_COST_OUTSIDE } from '../constants';
+import { db } from '../services/firebase';
+import { 
+  collection, 
+  addDoc, 
+  serverTimestamp, 
+  query, 
+  where, 
+  getDocs,
+  runTransaction,
+  doc
+} from 'firebase/firestore';
 
 const Checkout: React.FC = () => {
   const { cart, totalPrice, clearCart } = useCart();
+  const { user, profile } = useAuth();
   const [orderPlaced, setOrderPlaced] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [shippingMethod, setShippingMethod] = useState<'dhaka' | 'outside'>('dhaka');
+  
+  // Coupon State
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [couponError, setCouponError] = useState('');
+
+  // Form State
+  const [formData, setFormData] = useState({
+    name: '',
+    phone: '',
+    address: ''
+  });
+
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        name: profile.name || '',
+        phone: profile.phone || '',
+        address: profile.address || ''
+      });
+    }
+  }, [profile]);
 
   const shippingCost = shippingMethod === 'dhaka' ? SHIPPING_COST_DHAKA : SHIPPING_COST_OUTSIDE;
-  const grandTotal = totalPrice + shippingCost;
+  const discount = appliedCoupon ? (appliedCoupon.type === 'percentage' ? (totalPrice * appliedCoupon.value / 100) : appliedCoupon.value) : 0;
+  const grandTotal = totalPrice + shippingCost - discount;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleApplyCoupon = async () => {
+    setCouponError('');
+    if (!couponCode) return;
+
+    try {
+      const q = query(collection(db, 'coupons'), where('code', '==', couponCode), where('isActive', '==', true));
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) {
+        setCouponError('কুপনটি সঠিক নয় বা মেয়াদ শেষ হয়ে গেছে');
+        return;
+      }
+
+      const coupon = { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() } as any;
+      
+      if (totalPrice < coupon.minOrder) {
+        setCouponError(`এই কুপন ব্যবহারের জন্য নূন্যতম ৳${coupon.minOrder} টাকার পণ্য কিনুন`);
+        return;
+      }
+
+      setAppliedCoupon(coupon);
+      setCouponCode('');
+    } catch (err) {
+      setCouponError('কুপন যাচাই করতে সমস্যা হয়েছে');
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setOrderPlaced(true);
-    clearCart();
+    if (cart.length === 0) return;
+    setLoading(true);
+
+    try {
+      await runTransaction(db, async (transaction) => {
+        // 1. Create the order
+        const orderData = {
+          userId: user?.uid || 'guest',
+          customerInfo: formData,
+          items: cart,
+          totalAmount: grandTotal,
+          deliveryCharge: shippingCost,
+          couponDiscount: discount,
+          status: 'pending',
+          paymentMethod: 'Cash on Delivery',
+          createdAt: serverTimestamp()
+        };
+
+        const ordersRef = collection(db, 'orders');
+        addDoc(ordersRef, orderData);
+
+        // 2. Reduce stock for each item (in a real production app we'd fetch and check stock first)
+        for (const item of cart) {
+          const productRef = doc(db, 'products', item.id);
+          const productSnap = await transaction.get(productRef);
+          if (productSnap.exists()) {
+            const newStock = Math.max(0, (productSnap.data().stock || 0) - item.quantity);
+            transaction.update(productRef, { stock: newStock });
+          }
+        }
+      });
+
+      setOrderPlaced(true);
+      clearCart();
+    } catch (err) {
+      console.error('Checkout error:', err);
+      alert('অর্ডার সম্পন্ন করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (orderPlaced) {
@@ -69,17 +171,35 @@ const Checkout: React.FC = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <div className="space-y-3">
                   <label className="text-sm font-bold uppercase tracking-widest text-stone-400">নাম *</label>
-                  <input required type="text" className="w-full p-5 bg-brand-cream border border-stone-200 rounded-xl font-bold focus:outline-none focus:ring-2 focus:ring-brand-gold/20 focus:border-brand-gold" placeholder="নাম" />
+                  <input 
+                    required type="text" 
+                    className="w-full p-5 bg-brand-cream border border-stone-200 rounded-xl font-bold focus:outline-none focus:ring-2 focus:ring-brand-gold/20 focus:border-brand-gold" 
+                    placeholder="নাম" 
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  />
                 </div>
                 <div className="space-y-3">
                   <label className="text-sm font-bold uppercase tracking-widest text-stone-400">ফোন নাম্বার *</label>
-                  <input required type="text" className="w-full p-5 bg-brand-cream border border-stone-200 rounded-xl font-bold focus:outline-none focus:ring-2 focus:ring-brand-gold/20 focus:border-brand-gold" placeholder="০১৮XXXXXXXX" />
+                  <input 
+                    required type="text" 
+                    className="w-full p-5 bg-brand-cream border border-stone-200 rounded-xl font-bold focus:outline-none focus:ring-2 focus:ring-brand-gold/20 focus:border-brand-gold" 
+                    placeholder="০১৮XXXXXXXX" 
+                    value={formData.phone}
+                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                  />
                 </div>
               </div>
               
               <div className="mt-8 space-y-3">
                 <label className="text-sm font-bold uppercase tracking-widest text-stone-400">সম্পূর্ণ ঠিকানা *</label>
-                <textarea required rows={4} className="w-full p-5 bg-brand-cream border border-stone-200 rounded-xl font-bold focus:outline-none focus:ring-2 focus:ring-brand-gold/20 focus:border-brand-gold" placeholder="আপনার ঠিকানা লিখুন..."></textarea>
+                <textarea 
+                  required rows={4} 
+                  className="w-full p-5 bg-brand-cream border border-stone-200 rounded-xl font-bold focus:outline-none focus:ring-2 focus:ring-brand-gold/20 focus:border-brand-gold" 
+                  placeholder="আপনার ঠিকানা লিখুন..."
+                  value={formData.address}
+                  onChange={(e) => setFormData({...formData, address: e.target.value})}
+                ></textarea>
               </div>
 
               <div className="mt-12">
@@ -135,8 +255,38 @@ const Checkout: React.FC = () => {
           <div className="lg:col-span-1">
             <div className="bg-white p-10 rounded-2xl shadow-2xl border border-stone-100 sticky top-32">
               <h2 className="text-2xl font-black mb-10 border-b border-stone-100 pb-4 uppercase tracking-tighter">Summary</h2>
+
+              <div className="mb-10">
+                <div className="relative">
+                  <Ticket className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={18} />
+                  <input 
+                    type="text" 
+                    placeholder="কুপন কোড..." 
+                    className="w-full pl-11 pr-24 py-4 bg-stone-50 border border-stone-100 rounded-xl font-bold focus:outline-none focus:ring-2 focus:ring-brand-gold/20"
+                    value={couponCode}
+                    onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                  />
+                  <button 
+                    type="button"
+                    onClick={handleApplyCoupon}
+                    className="absolute right-2 top-2 bottom-2 bg-brand-dark text-white px-4 rounded-lg text-sm font-bold hover:bg-brand-red transition-all"
+                  >
+                    Apply
+                  </button>
+                </div>
+                {couponError && <p className="text-red-500 text-xs mt-2 font-bold ml-1">{couponError}</p>}
+                {appliedCoupon && (
+                   <div className="mt-4 flex items-center justify-between bg-green-50 p-3 rounded-xl border border-green-100">
+                      <div className="flex items-center gap-2 text-green-700">
+                         <div className="w-5 h-5 bg-green-600 rounded-full flex items-center justify-center text-white"><CheckCircle size={12} /></div>
+                         <span className="font-bold text-sm">Coupon: {appliedCoupon.code}</span>
+                      </div>
+                      <button onClick={() => setAppliedCoupon(null)} className="text-stone-400 hover:text-red-500"><XCircle size={16} /></button>
+                   </div>
+                )}
+              </div>
               
-              <div className="space-y-6 mb-10 max-h-60 overflow-y-auto scrollbar-hide">
+              <div className="space-y-6 mb-10 max-h-60 overflow-y-auto scrollbar-hide border-b border-stone-50 pb-8">
                 {cart.map((item) => (
                   <div key={item.id} className="flex justify-between items-center gap-4">
                     <div className="flex items-center gap-4">
@@ -153,7 +303,7 @@ const Checkout: React.FC = () => {
                 ))}
               </div>
 
-              <div className="space-y-6 mb-10 border-t border-brand-cream pt-8">
+              <div className="space-y-6 mb-10 pt-8">
                 <div className="flex justify-between text-stone-400 font-bold uppercase text-xs tracking-widest leading-none">
                   <span>Subtotal</span>
                   <span className="text-brand-dark">৳{totalPrice}</span>
@@ -162,6 +312,12 @@ const Checkout: React.FC = () => {
                   <span>Delivery</span>
                   <span className="text-brand-dark">৳{shippingCost}</span>
                 </div>
+                {appliedCoupon && (
+                  <div className="flex justify-between text-green-600 font-bold uppercase text-xs tracking-widest leading-none">
+                    <span>Discount ({appliedCoupon.code})</span>
+                    <span>- ৳{discount}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-4xl font-black text-brand-dark pt-4">
                   <span className="tracking-tighter">Total</span>
                   <span className="text-brand-red">৳{grandTotal}</span>
@@ -170,9 +326,10 @@ const Checkout: React.FC = () => {
 
               <button
                 type="submit"
-                className="w-full bg-brand-red text-white py-6 rounded-xl font-black text-3xl shadow-xl hover:bg-brand-dark transition-all active:scale-95"
+                disabled={loading || cart.length === 0}
+                className="w-full bg-brand-red text-white py-6 rounded-xl font-black text-3xl shadow-xl hover:bg-brand-dark transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center gap-4"
               >
-                অর্ডার কনফার্ম
+                {loading ? 'প্রসেসিং...' : 'অর্ডার কনফার্ম'}
               </button>
             </div>
           </div>
