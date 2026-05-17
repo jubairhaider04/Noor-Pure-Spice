@@ -1,20 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { CheckCircle, Truck, CreditCard, ChevronLeft, Ticket, XCircle } from 'lucide-react';
+import { CheckCircle, Truck, CreditCard, ChevronLeft, Ticket, XCircle, Mail } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { SHIPPING_COST_DHAKA, SHIPPING_COST_OUTSIDE } from '../constants';
 import { db } from '../services/firebase';
+import { sendEmail, getOrderConfirmationHtml } from '../services/emailService';
 import { 
   collection, 
-  addDoc, 
   serverTimestamp, 
   query, 
   where, 
   getDocs,
   runTransaction,
-  doc
+  doc,
+  setDoc
 } from 'firebase/firestore';
 
 const Checkout: React.FC = () => {
@@ -32,6 +33,7 @@ const Checkout: React.FC = () => {
   // Form State
   const [formData, setFormData] = useState({
     name: '',
+    email: '',
     phone: '',
     address: ''
   });
@@ -40,11 +42,12 @@ const Checkout: React.FC = () => {
     if (profile) {
       setFormData({
         name: profile.name || '',
+        email: user?.email || '',
         phone: profile.phone || '',
         address: profile.address || ''
       });
     }
-  }, [profile]);
+  }, [profile, user]);
 
   const shippingCost = shippingMethod === 'dhaka' ? SHIPPING_COST_DHAKA : SHIPPING_COST_OUTSIDE;
   const discount = appliedCoupon ? (appliedCoupon.type === 'percentage' ? (totalPrice * appliedCoupon.value / 100) : appliedCoupon.value) : 0;
@@ -83,6 +86,7 @@ const Checkout: React.FC = () => {
     setLoading(true);
 
     try {
+      let finalOrderId = '';
       await runTransaction(db, async (transaction) => {
         // 1. Create the order
         const orderData = {
@@ -98,9 +102,11 @@ const Checkout: React.FC = () => {
         };
 
         const ordersRef = collection(db, 'orders');
-        addDoc(ordersRef, orderData);
+        const newOrderRef = doc(ordersRef);
+        finalOrderId = newOrderRef.id;
+        transaction.set(newOrderRef, orderData);
 
-        // 2. Reduce stock for each item (in a real production app we'd fetch and check stock first)
+        // 2. Reduce stock for each item
         for (const item of cart) {
           const productRef = doc(db, 'products', item.id);
           const productSnap = await transaction.get(productRef);
@@ -110,6 +116,15 @@ const Checkout: React.FC = () => {
           }
         }
       });
+
+      // 3. Send Confirmation Email (optional, don't block UI if it fails)
+      if (formData.email) {
+        sendEmail({
+          to: formData.email,
+          subject: 'অর্ডার কনফার্মেশন - নূর গুঁড়া মসলা',
+          html: getOrderConfirmationHtml({ id: finalOrderId, customerInfo: formData, totalAmount: grandTotal })
+        }).catch(err => console.error('Failed to send confirmation email:', err));
+      }
 
       setOrderPlaced(true);
       clearCart();
@@ -187,6 +202,16 @@ const Checkout: React.FC = () => {
                     placeholder="০১৮XXXXXXXX" 
                     value={formData.phone}
                     onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-3 md:col-span-2">
+                  <label className="text-sm font-bold uppercase tracking-widest text-stone-400">ইমেইল (অর্ডার আপডেটের জন্য)</label>
+                  <input 
+                    type="email" 
+                    className="w-full p-5 bg-brand-cream border border-stone-200 rounded-xl font-bold focus:outline-none focus:ring-2 focus:ring-brand-gold/20 focus:border-brand-gold" 
+                    placeholder="example@mail.com" 
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
                   />
                 </div>
               </div>

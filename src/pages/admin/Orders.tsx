@@ -19,6 +19,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { sendEmail, getShippingUpdateHtml } from '../../services/emailService';
 
 const AdminOrders: React.FC = () => {
   const [orders, setOrders] = useState<any[]>([]);
@@ -39,11 +40,20 @@ const AdminOrders: React.FC = () => {
     fetchOrders();
   }, []);
 
-  const updateOrderStatus = async (orderId: string, status: string) => {
+  const updateOrderStatus = async (orderId: string, status: string, order: any) => {
     await updateDoc(doc(db, 'orders', orderId), { status });
     fetchOrders();
     if (selectedOrder?.id === orderId) {
       setSelectedOrder({ ...selectedOrder, status });
+    }
+
+    // Send Status Update Email
+    if (order.customerInfo.email) {
+      sendEmail({
+        to: order.customerInfo.email,
+        subject: `অর্ডার আপডেট - নূর গুঁড়া মসলা`,
+        html: getShippingUpdateHtml(order, status)
+      }).catch(err => console.error('Failed to send status update email:', err));
     }
   };
 
@@ -227,25 +237,25 @@ const AdminOrders: React.FC = () => {
                 <p className="text-sm font-bold text-stone-500 uppercase tracking-widest text-center">স্ট্যাটাস পরিবর্তন করুন</p>
                 <div className="grid grid-cols-2 gap-3">
                   <button 
-                    onClick={() => updateOrderStatus(selectedOrder.id, 'confirmed')}
+                    onClick={() => updateOrderStatus(selectedOrder.id, 'confirmed', selectedOrder)}
                     className={`flex items-center justify-center gap-2 py-3 rounded-xl border-2 transition-all font-bold ${selectedOrder.status === 'confirmed' ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-blue-600 border-blue-600 hover:bg-blue-50'}`}
                   >
                     <CheckCircle size={18} /> কনফার্ম করুন
                   </button>
                   <button 
-                    onClick={() => updateOrderStatus(selectedOrder.id, 'shipped')}
+                    onClick={() => updateOrderStatus(selectedOrder.id, 'shipped', selectedOrder)}
                     className={`flex items-center justify-center gap-2 py-3 rounded-xl border-2 transition-all font-bold ${selectedOrder.status === 'shipped' ? 'bg-purple-600 text-white border-purple-600' : 'bg-white text-purple-600 border-purple-600 hover:bg-purple-50'}`}
                   >
                     <Truck size={18} /> শিপ করুন
                   </button>
                   <button 
-                    onClick={() => updateOrderStatus(selectedOrder.id, 'delivered')}
+                    onClick={() => updateOrderStatus(selectedOrder.id, 'delivered', selectedOrder)}
                     className={`flex items-center justify-center gap-2 py-3 rounded-xl border-2 transition-all font-bold ${selectedOrder.status === 'delivered' ? 'bg-green-600 text-white border-green-600' : 'bg-white text-green-600 border-green-100 hover:bg-green-50'}`}
                   >
                     <CheckCircle size={18} /> ডেলিভারড
                   </button>
                   <button 
-                    onClick={() => updateOrderStatus(selectedOrder.id, 'cancelled')}
+                    onClick={() => updateOrderStatus(selectedOrder.id, 'cancelled', selectedOrder)}
                     className={`flex items-center justify-center gap-2 py-3 rounded-xl border-2 transition-all font-bold ${selectedOrder.status === 'cancelled' ? 'bg-red-600 text-white border-red-600' : 'bg-white text-red-600 border-red-100 hover:bg-red-50'}`}
                   >
                     <XCircle size={18} /> বাতিল করুন

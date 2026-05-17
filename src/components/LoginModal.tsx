@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
-  updateProfile 
+  updateProfile,
+  sendPasswordResetEmail
 } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../services/firebase';
@@ -18,6 +19,7 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -27,10 +29,29 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
     confirmPassword: ''
   });
 
+  const handleForgotPassword = async () => {
+    if (!formData.email) {
+      setError('পাসওয়ার্ড রিসেটের জন্য প্রথমে আপনার ইমেইলটি লিখুন।');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    setSuccessMsg('');
+    try {
+      await sendPasswordResetEmail(auth, formData.email);
+      setSuccessMsg('আপনার ইমেইলে পাসওয়ার্ড রিসেট লিঙ্ক পাঠানো হয়েছে।');
+    } catch (err: any) {
+      setError('ইমেইল পাঠানো সম্ভব হয়নি। দয়া করে সঠিক ইমেইলটি ব্যবহার করুন।');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccessMsg('');
 
     try {
       if (isLogin) {
@@ -56,7 +77,20 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
       }
       onClose();
     } catch (err: any) {
-      setError(err.message === 'পাসওয়ার্ড মেলেনি' ? err.message : 'লগইন করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+      console.error('Auth error:', err);
+      if (err.message === 'পাসওয়ার্ড মেলেনি') {
+        setError(err.message);
+      } else if (err.code === 'auth/email-already-in-use') {
+        setError('এই ইমেইলটি ইতিমধ্যে ব্যবহৃত হয়েছে। লগইন করার চেষ্টা করুন।');
+      } else if (err.code === 'auth/weak-password') {
+        setError('পাসওয়ার্ডটি খুব দুর্বল। অন্তত ৬টি অক্ষর ব্যবহার করুন।');
+      } else if (err.code === 'auth/invalid-email') {
+        setError('ইমেইল অ্যাড্রেসটি সঠিক নয়।');
+      } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+        setError('ইমেইল অথবা পাসওয়ার্ডটি সঠিক নয়।');
+      } else {
+        setError('লগইন করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+      }
     } finally {
       setLoading(false);
     }
@@ -98,6 +132,12 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                 </div>
               )}
 
+              {successMsg && (
+                <div className="bg-green-50 text-green-600 p-4 rounded-xl mb-6 text-center font-bold">
+                  {successMsg}
+                </div>
+              )}
+
               <form onSubmit={handleSubmit} className="space-y-5">
                 {!isLogin && (
                   <div className="space-y-5">
@@ -131,6 +171,18 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
                     onChange={(e) => setFormData({...formData, email: e.target.value})}
                   />
                 </div>
+
+                {isLogin && (
+                   <div className="text-right">
+                      <button 
+                        type="button"
+                        onClick={handleForgotPassword}
+                        className="text-stone-400 hover:text-brand-red text-sm font-bold transition-colors"
+                      >
+                        পাসওয়ার্ড ভুলে গেছেন?
+                      </button>
+                   </div>
+                )}
 
                 <div className="relative">
                   <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-400" size={20} />
