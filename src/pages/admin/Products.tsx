@@ -11,8 +11,9 @@ import {
   serverTimestamp 
 } from 'firebase/firestore';
 import { db } from '../../services/firebase';
-import { Plus, Edit, Trash2, Search, Package, AlertCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Package, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import AIAssistant from '../admin/AIAssistant';
 
 const AdminProducts: React.FC = () => {
   const [products, setProducts] = useState<any[]>([]);
@@ -28,8 +29,9 @@ const AdminProducts: React.FC = () => {
     price: '',
     weightBn: '',
     stock: '',
-    category: 'মরিচ গুঁড়া',
-    image: ''
+    category: 'মরিচ গুঁড়া',
+    image: '',
+    description: ''
   });
 
   const fetchProducts = async () => {
@@ -65,7 +67,7 @@ const AdminProducts: React.FC = () => {
 
     setIsModalOpen(false);
     setEditingProduct(null);
-    setFormData({ nameBn: '', nameEn: '', price: '', weightBn: '', stock: '', category: 'মরিচ গুঁড়া', image: '' });
+    setFormData({ nameBn: '', nameEn: '', price: '', weightBn: '', stock: '', category: 'মরিচ গুঁড়া', image: '', description: '' });
     fetchProducts();
   };
 
@@ -78,7 +80,8 @@ const AdminProducts: React.FC = () => {
       weightBn: product.weightBn,
       stock: product.stock.toString(),
       category: product.category,
-      image: product.image
+      image: product.image,
+      description: product.description || ''
     });
     setIsModalOpen(true);
   };
@@ -94,6 +97,10 @@ const AdminProducts: React.FC = () => {
     p.nameBn.toLowerCase().includes(searchTerm.toLowerCase()) ||
     p.nameEn.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleUseAIDescription = (content: string) => {
+    setFormData({ ...formData, description: content });
+  };
 
   return (
     <div className="space-y-8 font-bn">
@@ -141,7 +148,7 @@ const AdminProducts: React.FC = () => {
             {loading ? (
               <tr><td colSpan={5} className="text-center py-12 text-xl">লোডিং...</td></tr>
             ) : filteredProducts.length === 0 ? (
-                <tr><td colSpan={5} className="text-center py-12 text-xl">কোনো পণ্য পাওয়া যায়নি</td></tr>
+                <tr><td colSpan={5} className="text-center py-12 text-xl">কোনো পণ্য পাওয়া যায়নি</td></tr>
             ) : filteredProducts.map((product) => (
               <tr key={product.id} className="hover:bg-stone-50/50 transition-colors">
                 <td className="px-6 py-4">
@@ -204,9 +211,9 @@ const AdminProducts: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl relative z-10 overflow-hidden"
+              className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl relative z-10 overflow-hidden max-h-[90vh] overflow-y-auto"
             >
-              <div className="p-8 border-b border-stone-100 flex justify-between items-center">
+              <div className="p-8 border-b border-stone-100 flex justify-between items-center sticky top-0 bg-white z-10">
                 <h2 className="text-2xl font-black text-brand-dark">
                   {editingProduct ? 'পণ্য সংশোধন করুন' : 'নতুন পণ্য যুক্ত করুন'}
                 </h2>
@@ -268,10 +275,10 @@ const AdminProducts: React.FC = () => {
                       value={formData.category}
                       onChange={(e) => setFormData({...formData, category: e.target.value})}
                     >
-                      <option>মরিচ গুঁড়া</option>
-                      <option>হলুদ গুঁড়া</option>
-                      <option>জিরা গুঁড়া</option>
-                      <option>ধনিয়া গুঁড়া</option>
+                      <option>মরিচ গুঁড়া</option>
+                      <option>হলুদ গুঁড়া</option>
+                      <option>জিরা গুঁড়া</option>
+                      <option>ধনিয়া গুঁড়া</option>
                       <option>মশলা কম্বো</option>
                     </select>
                   </div>
@@ -285,6 +292,30 @@ const AdminProducts: React.FC = () => {
                     onChange={(e) => setFormData({...formData, image: e.target.value})}
                   />
                 </div>
+
+                {/* Description with AI Assistant */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-bold text-stone-500 ml-1">পণ্য বর্ণনা (ঐচ্ছিক)</label>
+                    {formData.nameBn && formData.category && (
+                      <AIAssistant
+                        type="product"
+                        data={{
+                          productName: formData.nameBn,
+                          category: formData.category
+                        }}
+                        onUse={handleUseAIDescription}
+                      />
+                    )}
+                  </div>
+                  <textarea 
+                    className="w-full px-4 py-3 bg-stone-50 rounded-xl border-none focus:ring-2 focus:ring-brand-red/20 font-bn text-lg min-h-[100px]"
+                    placeholder="পণ্যের বিবরণ..."
+                    value={formData.description}
+                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  />
+                </div>
+
                 <button type="submit" className="w-full bg-brand-red text-white py-4 rounded-xl font-black text-xl hover:bg-brand-dark transition-all shadow-lg active:scale-95">
                   তথ্য সংরক্ষণ করুন
                 </button>
