@@ -11,8 +11,9 @@ import {
   serverTimestamp 
 } from 'firebase/firestore';
 import { db } from '../../services/firebase';
-import { Plus, Edit, Trash2, Ticket, Check, X } from 'lucide-react';
+import { Plus, Edit, Trash2, Ticket, Check, X, Sparkles } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import AIAssistant from '../admin/AIAssistant';
 
 const AdminCoupons: React.FC = () => {
   const [coupons, setCoupons] = useState<any[]>([]);
@@ -26,7 +27,8 @@ const AdminCoupons: React.FC = () => {
     value: '',
     minOrder: '',
     expiryDate: '',
-    isActive: true
+    isActive: true,
+    promoText: ''
   });
 
   const fetchCoupons = async () => {
@@ -62,7 +64,7 @@ const AdminCoupons: React.FC = () => {
 
     setIsModalOpen(false);
     setEditingCoupon(null);
-    setFormData({ code: '', type: 'percentage', value: '', minOrder: '', expiryDate: '', isActive: true });
+    setFormData({ code: '', type: 'percentage', value: '', minOrder: '', expiryDate: '', isActive: true, promoText: '' });
     fetchCoupons();
   };
 
@@ -74,7 +76,8 @@ const AdminCoupons: React.FC = () => {
       value: coupon.value.toString(),
       minOrder: coupon.minOrder.toString(),
       expiryDate: coupon.expiryDate,
-      isActive: coupon.isActive
+      isActive: coupon.isActive,
+      promoText: coupon.promoText || ''
     });
     setIsModalOpen(true);
   };
@@ -89,6 +92,10 @@ const AdminCoupons: React.FC = () => {
   const toggleStatus = async (coupon: any) => {
      await updateDoc(doc(db, 'coupons', coupon.id), { isActive: !coupon.isActive });
      fetchCoupons();
+  };
+
+  const handleUseAIPromoText = (content: string) => {
+    setFormData({ ...formData, promoText: content });
   };
 
   return (
@@ -140,7 +147,7 @@ const AdminCoupons: React.FC = () => {
               <div>
                 <h3 className="text-2xl font-black text-brand-dark font-sans tracking-widest">{coupon.code}</h3>
                 <p className="text-stone-500 font-bold">
-                  {coupon.type === 'percentage' ? `${coupon.value}% ডিসকাউন্ট` : `৳ ${coupon.value} ছাড়`}
+                  {coupon.type === 'percentage' ? `${coupon.value}% ডিসকাউন্ট` : `৳ ${coupon.value} ছাড়`}
                 </p>
               </div>
 
@@ -150,7 +157,7 @@ const AdminCoupons: React.FC = () => {
                     <p className="font-bold text-brand-dark">৳ {coupon.minOrder}</p>
                 </div>
                 <div>
-                   <p className="text-stone-400 mb-1">মেয়াদ শেষ</p>
+                   <p className="text-stone-400 mb-1">মেয়াদ শেষ</p>
                    <p className="font-bold text-brand-dark">{coupon.expiryDate}</p>
                 </div>
               </div>
@@ -159,7 +166,7 @@ const AdminCoupons: React.FC = () => {
                 onClick={() => toggleStatus(coupon)}
                 className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${coupon.isActive ? 'bg-green-50 text-green-600' : 'bg-stone-100 text-stone-500'}`}
               >
-                {coupon.isActive ? <><Check size={18} /> সক্রিয় আছে</> : <><X size={18} /> ইন-অ্যাক্টিভ</>}
+                {coupon.isActive ? <><Check size={18} /> সক্রিয় আছে</> : <><X size={18} /> ইন-অ্যাক্টিভ</>}
               </button>
             </div>
           </motion.div>
@@ -181,9 +188,9 @@ const AdminCoupons: React.FC = () => {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="bg-white w-full max-w-lg rounded-3xl shadow-2xl relative z-10 overflow-hidden"
+              className="bg-white w-full max-w-lg rounded-3xl shadow-2xl relative z-10 overflow-hidden max-h-[90vh] overflow-y-auto"
             >
-              <div className="p-8 border-b border-stone-100 flex justify-between items-center bg-stone-50/50">
+              <div className="p-8 border-b border-stone-100 flex justify-between items-center sticky top-0 bg-white z-10">
                 <h2 className="text-2xl font-black text-brand-dark">
                   {editingCoupon ? 'কুপন এডিট করুন' : 'নতুন কুপন যুক্ত করুন'}
                 </h2>
@@ -237,7 +244,7 @@ const AdminCoupons: React.FC = () => {
                         />
                     </div>
                     <div className="space-y-2">
-                        <label className="text-sm font-bold text-stone-500 ml-1">মেয়াদ শেষ (তারিখ)</label>
+                        <label className="text-sm font-bold text-stone-500 ml-1">মেয়াদ শেষ (তারিখ)</label>
                         <input 
                             type="date" required
                             className="w-full px-4 py-3 bg-stone-50 rounded-xl border-none focus:ring-2 focus:ring-brand-red/20 font-sans"
@@ -248,6 +255,30 @@ const AdminCoupons: React.FC = () => {
                   </div>
                 </div>
 
+                {/* Promo Text with AI Assistant */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="text-sm font-bold text-stone-500 ml-1">প্রচারমূলক বার্তা (ঐচ্ছিক)</label>
+                    {formData.code && (
+                      <AIAssistant
+                        type="coupon"
+                        data={{
+                          code: formData.code,
+                          value: formData.value,
+                          type: formData.type
+                        }}
+                        onUse={handleUseAIPromoText}
+                      />
+                    )}
+                  </div>
+                  <textarea 
+                    className="w-full px-4 py-3 bg-stone-50 rounded-xl border-none focus:ring-2 focus:ring-brand-red/20 font-bn text-lg min-h-[80px]"
+                    placeholder="প্রমোশনাল বার্তা বা বিবরণ..."
+                    value={formData.promoText}
+                    onChange={(e) => setFormData({...formData, promoText: e.target.value})}
+                  />
+                </div>
+
                 <div className="flex items-center gap-2 py-2">
                    <input 
                      type="checkbox"
@@ -256,7 +287,7 @@ const AdminCoupons: React.FC = () => {
                      onChange={(e) => setFormData({...formData, isActive: e.target.checked})}
                      className="w-5 h-5 accent-brand-red"
                    />
-                   <label htmlFor="isActive" className="text-lg font-bold text-brand-dark cursor-pointer">কুপনটি সক্রিয় করুন</label>
+                   <label htmlFor="isActive" className="text-lg font-bold text-brand-dark cursor-pointer">কুপনটি সক্রিয় করুন</label>
                 </div>
 
                 <button type="submit" className="w-full bg-brand-red text-white py-4 rounded-xl font-black text-xl hover:bg-brand-dark transition-all shadow-lg active:scale-95">
