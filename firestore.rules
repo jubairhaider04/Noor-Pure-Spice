@@ -26,10 +26,11 @@ service cloud.firestore {
       return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
     }
 
-    // Products: Anyone can read, only admin can write
+    // Products: Anyone can read, only admin can write (and anyone can update stock)
     match /products/{productId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow create, delete: if isAdmin();
+      allow update: if isAdmin() || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stock']));
     }
 
     // Users: Users can read/write their own profiles, admins can read all
@@ -42,7 +43,7 @@ service cloud.firestore {
     // Orders: Users can read their own orders and create them, admins can read/write all
     match /orders/{orderId} {
       allow read: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
-      allow create: if isSignedIn();
+      allow create: if true;
       allow update, delete: if isAdmin();
     }
 
