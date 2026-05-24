@@ -86,10 +86,12 @@ const LoginModal: React.FC<LoginModalProps> = ({ isOpen, onClose }) => {
         setError('পাসওয়ার্ডটি খুব দুর্বল। অন্তত ৬টি অক্ষর ব্যবহার করুন।');
       } else if (err.code === 'auth/invalid-email') {
         setError('ইমেইল অ্যাড্রেসটি সঠিক নয়।');
-      } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password') {
+      } else if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
         setError('ইমেইল অথবা পাসওয়ার্ডটি সঠিক নয়।');
+      } else if (err.code === 'auth/operation-not-allowed') {
+        setError('Firebase-এ Email/Password authentication সচল (Enabled) করা নেই। দয়া করে Firebase Console-এ Authentication > Sign-in method-এ গিয়ে Email/Password সচল করুন।');
       } else {
-        setError('লগইন করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+        setError(`লগইন করতে সমস্যা হয়েছে: ${err.message || 'আবার চেষ্টা করুন।'}`);
       }
     } finally {
       setLoading(false);
