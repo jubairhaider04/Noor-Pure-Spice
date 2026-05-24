@@ -21,7 +21,7 @@ import {
   Pie,
   Cell
 } from 'recharts';
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
 import { db } from '../../services/firebase';
 
 const COLORS = ['#8B0000', '#DAA520', '#5D4037', '#2E7D32', '#008080', '#D2691E'];
@@ -43,30 +43,41 @@ const AdminDashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchDashboardData = async () => {
-      setLoading(true);
-      try {
-        // 1. Fetch Orders
-        const ordersSnapshot = await getDocs(query(collection(db, 'orders'), orderBy('createdAt', 'desc')));
-        const ordersData = ordersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setOrders(ordersData);
+    setLoading(true);
 
-        // 2. Fetch Products
-        const productsSnapshot = await getDocs(collection(db, 'products'));
-        const productsData = productsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setProducts(productsData);
+    // 1. Real-time listener for Orders
+    const ordersQuery = query(collection(db, 'orders'), orderBy('createdAt', 'desc'));
+    const unsubscribeOrders = onSnapshot(ordersQuery, (snapshot) => {
+      const ordersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setOrders(ordersData);
+    }, (err) => {
+      console.error('Error listening to orders:', err);
+    });
 
-        // 3. Fetch Registered Customers Count
-        const customersSnapshot = await getDocs(query(collection(db, 'users'), where('role', '==', 'user')));
-        setCustomersCount(customersSnapshot.size);
-      } catch (err) {
-        console.error('Error fetching dashboard metrics:', err);
-      } finally {
-        setLoading(false);
-      }
+    // 2. Real-time listener for Products
+    const productsQuery = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
+    const unsubscribeProducts = onSnapshot(productsQuery, (snapshot) => {
+      const productsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setProducts(productsData);
+      setLoading(false);
+    }, (err) => {
+      console.error('Error listening to products:', err);
+      setLoading(false);
+    });
+
+    // 3. Real-time listener for Registered Customers Count
+    const customersQuery = query(collection(db, 'users'), where('role', '==', 'user'));
+    const unsubscribeCustomers = onSnapshot(customersQuery, (snapshot) => {
+      setCustomersCount(snapshot.size);
+    }, (err) => {
+      console.error('Error listening to users:', err);
+    });
+
+    return () => {
+      unsubscribeOrders();
+      unsubscribeProducts();
+      unsubscribeCustomers();
     };
-
-    fetchDashboardData();
   }, []);
 
   // Calculate Metrics
@@ -225,6 +236,91 @@ const AdminDashboard: React.FC = () => {
               )}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Products Table Section */}
+      <div className="bg-white p-8 rounded-3xl shadow-sm border border-stone-100">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 border-b pb-4">
+          <div>
+            <h3 className="text-xl font-bold text-brand-dark flex items-center gap-2">
+              <Package className="text-brand-red" size={24} />
+              পণ্যসমূহ ({formatBnNum(products.length)} টি)
+            </h3>
+            <p className="text-stone-500 text-sm mt-1">ওয়েবসাইটে তালিকাভুক্ত পণ্যের রিয়েল-টাইম স্টক এবং মূল্য বিবরণী</p>
+          </div>
+        </div>
+
+        <div className="overflow-x-auto">
+          <table className="w-full text-left font-bn border-collapse">
+            <thead className="bg-stone-50 text-stone-500 uppercase text-sm font-sans">
+              <tr>
+                <th className="px-6 py-4 rounded-l-xl">পণ্য</th>
+                <th className="px-6 py-4">ক্যাটাগরি</th>
+                <th className="px-6 py-4">মূল্য</th>
+                <th className="px-6 py-4 rounded-r-xl">স্টক স্ট্যাটাস</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-stone-100">
+              {products.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="text-center py-12 text-stone-400 font-bold">
+                    কোনো পণ্য তালিকাভুক্ত নেই
+                  </td>
+                </tr>
+              ) : (
+                products.map((product) => {
+                  const stockNumber = Number(product.stock || 0);
+                  let stockBadgeClass = "";
+                  let stockText = "";
+                  
+                  if (stockNumber > 10) {
+                    stockBadgeClass = "bg-green-50 text-green-700 border-green-200";
+                    stockText = `স্টকে আছে (${formatBnNum(stockNumber)} টি)`;
+                  } else if (stockNumber > 5) {
+                    stockBadgeClass = "bg-amber-50 text-amber-700 border-amber-200";
+                    stockText = `সীমিত স্টক (${formatBnNum(stockNumber)} টি)`;
+                  } else if (stockNumber > 0) {
+                    stockBadgeClass = "bg-rose-50 text-rose-700 border-rose-200";
+                    stockText = `আর মাত্র ${formatBnNum(stockNumber)} টি আছে!`;
+                  } else {
+                    stockBadgeClass = "bg-stone-100 text-stone-500 border-stone-200";
+                    stockText = "স্টক শেষ!";
+                  }
+
+                  return (
+                    <tr key={product.id} className="hover:bg-stone-50/50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-4">
+                          <img 
+                            src={product.image || "https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&q=80&w=100"} 
+                            alt={product.nameBn} 
+                            className="w-12 h-12 rounded-xl object-cover bg-stone-100 border border-stone-100" 
+                            referrerPolicy="no-referrer"
+                          />
+                          <div>
+                            <p className="font-bold text-brand-dark text-lg leading-tight">{product.nameBn}</p>
+                            <p className="text-xs text-stone-400 font-sans mt-1">{product.weightBn} • {product.nameEn}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="text-stone-600 font-semibold text-base">{product.category}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className="font-extrabold text-brand-red text-lg">{formatBnCurrency(product.price)}</span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center px-3 py-1 text-sm font-bold rounded-full border ${stockBadgeClass}`}>
+                          {stockText}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
