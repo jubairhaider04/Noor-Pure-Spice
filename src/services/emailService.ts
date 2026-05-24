@@ -78,3 +78,56 @@ export const getShippingUpdateHtml = (order: any, status: string) => {
     </div>
   `;
 };
+
+export const getAdminNewOrderNotificationHtml = (order: any) => {
+  const itemsHtml = order.items?.map((item: any) => `
+    <tr>
+      <td style="padding: 8px; border-bottom: 1px solid #eee;">${item.nameBn} (${item.weightBn})</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: center;">${item.quantity}</td>
+      <td style="padding: 8px; border-bottom: 1px solid #eee; text-align: right;">৳ ${item.price * item.quantity}</td>
+    </tr>
+  `).join('') || '';
+
+  return `
+    <div style="font-family: sans-serif; padding: 20px; max-width: 600px; margin: auto; border: 1px solid #eee; border-radius: 10px;">
+      <h1 style="color: #BA0D15; margin-bottom: 5px;">নূর গুঁড়া মসলা</h1>
+      <h2 style="color: #333; margin-top: 0; font-size: 18px;">নতুন অর্ডার নোটিফিকেশন 🔔</h2>
+      <p>অ্যাডমিন মহোদয়,</p>
+      <p>আপনার নূর গুঁড়া মসলা ওয়েবসাইটে একটি নতুন অর্ডার এসেছে। অর্ডারের বিবরণ নিচে দেওয়া হলো:</p>
+      
+      <div style="background-color: #f9f9f9; padding: 15px; border-radius: 8px; margin: 20px 0;">
+        <h3 style="margin-top: 0; color: #BA0D15;">ক্রেতার তথ্য:</h3>
+        <p style="margin: 5px 0;"><strong>নাম:</strong> ${order.customerInfo.name}</p>
+        <p style="margin: 5px 0;"><strong>মোবাইল:</strong> ${order.customerInfo.phone}</p>
+        <p style="margin: 5px 0;"><strong>ঠিকানা:</strong> ${order.customerInfo.address}</p>
+        ${order.customerInfo.email ? `<p style="margin: 5px 0;"><strong>ইমেইল:</strong> ${order.customerInfo.email}</p>` : ''}
+      </div>
+
+      <div style="margin: 20px 0;">
+        <h3 style="color: #BA0D15;">অর্ডারকৃত পণ্যসমূহ:</h3>
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+          <thead>
+            <tr style="background-color: #f5f5f5;">
+              <th style="padding: 8px; text-align: left; border-bottom: 2px solid #ddd;">পণ্য</th>
+              <th style="padding: 8px; text-align: center; border-bottom: 2px solid #ddd;">পরিমাণ</th>
+              <th style="padding: 8px; text-align: right; border-bottom: 2px solid #ddd;">মূল্য</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+      </div>
+      
+      <div style="background-color: #BA0D15; color: white; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: right; font-size: 16px;">
+        <strong>সর্বমোট বিল: ৳ ${order.totalAmount}</strong> (ডেলিভারি চার্জ সহ)
+      </div>
+      
+      <p>দয়া করে অ্যাডমিন প্যানেলে প্রবেশ করে অর্ডারটি প্রসেস করার প্রয়োজনীয় ব্যবস্থা গ্রহণ করুন।</p>
+      
+      <div style="margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; font-size: 12px; color: #666; text-align: center;">
+        <p>© 2026 নূর গুঁড়া মসলা</p>
+      </div>
+    </div>
+  `;
+};

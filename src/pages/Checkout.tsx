@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
 import { SHIPPING_COST_DHAKA, SHIPPING_COST_OUTSIDE } from '../constants';
 import { db } from '../services/firebase';
-import { sendEmail, getOrderConfirmationHtml } from '../services/emailService';
+import { sendEmail, getOrderConfirmationHtml, getAdminNewOrderNotificationHtml } from '../services/emailService';
 import { 
   collection, 
   serverTimestamp, 
@@ -117,7 +117,7 @@ const Checkout: React.FC = () => {
         }
       });
 
-      // 3. Send Confirmation Email (optional, don't block UI if it fails)
+      // 3. Send Confirmation Email to Customer (optional, don't block UI if it fails)
       if (formData.email) {
         sendEmail({
           to: formData.email,
@@ -125,6 +125,20 @@ const Checkout: React.FC = () => {
           html: getOrderConfirmationHtml({ id: finalOrderId, customerInfo: formData, totalAmount: grandTotal })
         }).catch(err => console.error('Failed to send confirmation email:', err));
       }
+
+      // 4. Send Order Notification Email to Admin (jubair04sale@gmail.com)
+      sendEmail({
+        to: 'jubair04sale@gmail.com',
+        subject: `🔔 নূর গুঁড়া মসলা - নতুন অর্ডার #${finalOrderId.slice(-6).toUpperCase()}`,
+        html: getAdminNewOrderNotificationHtml({
+          id: finalOrderId,
+          customerInfo: formData,
+          items: cart,
+          totalAmount: grandTotal,
+          deliveryCharge: shippingCost,
+          couponDiscount: discount
+        })
+      }).catch(err => console.error('Failed to send admin order email:', err));
 
       setOrderPlaced(true);
       clearCart();
