@@ -115,7 +115,10 @@ const Home: React.FC = () => {
           <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-6">
             <div className="relative">
               <div className="absolute -top-10 -left-6 text-brand-gold/10 font-black text-8xl pointer-events-none">NOOR</div>
-              <h2 className="text-4xl md:text-5xl font-black text-brand-dark mb-4 font-bn relative z-10">জনপ্রিয় পণ্যসমূহ</h2>
+              <h2 
+                className="text-4xl md:text-5xl font-black text-brand-dark mb-4 font-bn relative z-10"
+                style={{ color: '#ffffff' }}
+              >জনপ্রিয় পণ্যসমূহ</h2>
               <div className="w-20 h-1.5 bg-brand-red"></div>
             </div>
             <Link to="/shop" className="text-brand-red font-bold font-bn text-xl flex items-center gap-2 hover:translate-x-2 transition-transform">
@@ -124,7 +127,7 @@ const Home: React.FC = () => {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
-            {featuredProducts.map((product) => (
+            {featuredProducts.map((product, idx) => (
               <motion.div
                 key={product.id}
                 whileHover={{ y: -10 }}
@@ -141,7 +144,10 @@ const Home: React.FC = () => {
                     {product.category}
                   </div>
                 </Link>
-                <div className="p-8 flex flex-col flex-1">
+                <div 
+                  className="p-8 flex flex-col flex-1"
+                  style={(idx === 0 || idx === 1) ? { color: '#ffffff' } : undefined}
+                >
                   <div className="flex justify-between items-start mb-4">
                     <h3 className="text-2xl font-black font-bn tracking-tight text-brand-dark group-hover:text-brand-red transition-colors">
                       {product.nameBn}
