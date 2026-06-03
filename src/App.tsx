@@ -18,6 +18,7 @@ import Terms from './pages/Terms';
 import DeliveryPolicy from './pages/DeliveryPolicy';
 import ReturnPolicy from './pages/ReturnPolicy';
 import PrivacyPolicy from './pages/PrivacyPolicy';
+import Profile from './pages/Profile';
 import { CartProvider } from './context/CartContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import AdminLayout from './components/admin/AdminLayout';
@@ -65,6 +66,7 @@ function AppContent() {
           <Route path="/delivery-policy" element={<DeliveryPolicy />} />
           <Route path="/return-policy" element={<ReturnPolicy />} />
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="/admin" element={
             <ProtectedRoute adminOnly>
               <AdminLayout>

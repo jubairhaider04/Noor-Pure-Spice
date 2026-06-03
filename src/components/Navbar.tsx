@@ -124,6 +124,14 @@ const Navbar: React.FC = () => {
                     <p className="text-sm text-stone-400 font-sans">লগইন করা আছে</p>
                     <p className="font-bold text-brand-dark truncate">{user.displayName || user.email}</p>
                   </div>
+                  <Link 
+                    to="/profile" 
+                    onClick={() => setIsUserMenuOpen(false)}
+                    className="flex items-center gap-3 px-4 py-3 text-stone-600 hover:bg-stone-50 transition-colors font-bn font-bold"
+                  >
+                    <UserIcon size={18} />
+                    প্রোফাইল ও অর্ডার
+                  </Link>
                   {isAdmin && (
                     <Link 
                       to="/admin" 
@@ -176,6 +184,18 @@ const Navbar: React.FC = () => {
                 {link.name}
               </Link>
             ))}
+            <Link
+              to="/profile"
+              onClick={() => setIsMenuOpen(false)}
+              className={`font-bn text-xl font-medium py-2 border-b border-stone-50 flex items-center gap-2 ${
+                location.pathname === '/profile'
+                  ? 'text-brand-red'
+                  : 'text-brand-dark'
+              }`}
+            >
+              <UserIcon size={20} className="text-stone-400" />
+              প্রোফাইল ও অর্ডার
+            </Link>
             <div className="pt-4 flex flex-col space-y-4">
               <div className="flex items-center gap-3 text-brand-red font-bold font-bn text-lg">
                 <Phone size={20} />
