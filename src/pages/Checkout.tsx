@@ -88,7 +88,19 @@ const Checkout: React.FC = () => {
     try {
       let finalOrderId = '';
       await runTransaction(db, async (transaction) => {
-        // 1. Create the order
+        // 1. First, perform all READS: Get stock snapshots for all items in the cart
+        const stockUpdates: Array<{ ref: any; newStock: number }> = [];
+        for (const item of cart) {
+          const productRef = doc(db, 'products', item.id);
+          const productSnap = await transaction.get(productRef);
+          if (productSnap.exists()) {
+            const currentStock = productSnap.data().stock || 0;
+            const newStock = Math.max(0, currentStock - item.quantity);
+            stockUpdates.push({ ref: productRef, newStock });
+          }
+        }
+
+        // 2. Next, perform all WRITES: Create the order document
         const orderData = {
           userId: user?.uid || 'guest',
           customerInfo: formData,
@@ -106,14 +118,9 @@ const Checkout: React.FC = () => {
         finalOrderId = newOrderRef.id;
         transaction.set(newOrderRef, orderData);
 
-        // 2. Reduce stock for each item
-        for (const item of cart) {
-          const productRef = doc(db, 'products', item.id);
-          const productSnap = await transaction.get(productRef);
-          if (productSnap.exists()) {
-            const newStock = Math.max(0, (productSnap.data().stock || 0) - item.quantity);
-            transaction.update(productRef, { stock: newStock });
-          }
+        // 3. Write stock updates
+        for (const update of stockUpdates) {
+          transaction.update(update.ref, { stock: update.newStock });
         }
       });
 
