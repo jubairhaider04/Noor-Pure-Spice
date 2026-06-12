@@ -1,8 +1,10 @@
 import { Product } from './types';
-import TurmericImg from './assets/images/regenerated_image_1778034966619.jpg';
-import ChiliImg from './assets/images/regenerated_image_1778034968521.jpg';
+import TurmericImg from './assets/images/regenerated_image_1781245999699.png';
+import ChiliImg from './assets/images/regenerated_image_1781246004037.png';
 import CorianderImg from './assets/images/regenerated_image_1778034970511.jpg';
 import ComboImg from './assets/images/regenerated_image_1778091014698.jpg';
+import CuminImg from './assets/images/regenerated_image_1781246008408.png';
+import ShahiImg from './assets/images/regenerated_image_1781246013017.png';
 
 export const PRODUCTS: Product[] = [
   {
@@ -53,7 +55,7 @@ export const PRODUCTS: Product[] = [
     weightBn: '২০০ গ্রাম',
     description: 'Premium quality roasted cumin powder.',
     descriptionBn: 'উন্নত মানের ভাজা জিরার গুঁড়া।',
-    image: 'https://images.unsplash.com/photo-1581600140682-d4e68c8cde32?q=80&w=800&auto=format&fit=crop',
+    image: CuminImg,
     category: 'Basic Spices',
     categoryBn: 'প্রাথমিক মসলা'
   },
@@ -79,7 +81,7 @@ export const PRODUCTS: Product[] = [
     weightBn: '১০০ গ্রাম',
     description: 'Imperial blend of exotic spices for royal flavors.',
     descriptionBn: 'শাহী স্বাদের জন্য চমৎকার সুগন্ধি মসলার বিলাস বহুল মিশ্রণ।',
-    image: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?q=80&w=800&auto=format&fit=crop',
+    image: ShahiImg,
     category: 'Premium Mixed',
     categoryBn: 'প্রিমিয়াম মিশ্র'
   },
